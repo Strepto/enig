@@ -1,7 +1,6 @@
 module Backend exposing (..)
 
 import Cmd.Extra exposing (withCmd, withNoCmd)
-import Html
 import Lamdera exposing (ClientId, SessionId)
 import Types exposing (..)
 
@@ -47,6 +46,6 @@ updateFromFrontend sessionId clientId msg model =
         ChangedVoteToBackend vote ->
             let
                 newVotes =
-                    { vote = vote, client = clientId } :: model.votes
+                    { vote = vote, client = clientId } :: model.votes |> List.take 100
             in
             { model | votes = newVotes } |> withCmd (Lamdera.broadcast (VotesUpdated (newVotes |> List.map .vote)))

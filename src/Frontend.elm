@@ -10,8 +10,6 @@ import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
 import ElmUi.Cursor as Cursor
-import Html
-import Html.Attributes exposing (disabled)
 import Lamdera
 import Types exposing (..)
 import Url
@@ -92,7 +90,7 @@ updateFromBackend msg model =
 
 view : Model -> Browser.Document FrontendMsg
 view model =
-    { title = "Plannin' 🃏"
+    { title = "Enig"
     , body =
         [ Element.layout [] (viewContent model)
         ]
@@ -115,7 +113,7 @@ viewSelectedCard card =
 
 
 viewHeader =
-    row [ width fill, height (48 |> px), padding 10, Bg.color (rgb255 100 240 200) ] [ text "Planner" ]
+    row [ width fill, height (48 |> px), padding 10, Bg.color (rgb255 100 240 200) ] [ text "Enig: Agree on anything" ]
 
 
 cardTypes : List Vote
