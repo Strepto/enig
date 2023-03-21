@@ -1,5 +1,6 @@
 module Frontend exposing (..)
 
+import AppUrl
 import Browser exposing (UrlRequest(..))
 import Browser.Navigation as Nav
 import Cmd.Extra exposing (addCmd, addCmds, andThen, withCmd, withCmds, withNoCmd)
@@ -33,11 +34,23 @@ app =
 
 init : Url.Url -> Nav.Key -> ( Model, Cmd FrontendMsg )
 init url key =
+    let
+        route =
+            urlParser url
+    in
     ( { key = key
+      , route = route
       , mySelectedVote = Nothing
       , othersVotes = []
+      , roomIdInput = ""
+      , roomId = ""
       }
-    , Cmd.none
+    , case route of
+        RoomPage room ->
+            Lamdera.sendToBackend (JoinedRoomToBackend room)
+
+        LobbyPage ->
+            Cmd.none
     )
 
 
@@ -57,16 +70,35 @@ update msg model =
                     )
 
         UrlChanged url ->
-            ( model, Cmd.none )
+            ( { model | route = urlParser url }, Cmd.none )
 
         NoOpFrontendMsg ->
             ( model, Cmd.none )
 
         ChangedVoteFrontendMsg vote ->
-            { model | mySelectedVote = Just vote } |> withCmd (Lamdera.sendToBackend (ChangedVoteToBackend vote))
+            { model | mySelectedVote = Just vote, othersVotes = vote :: model.othersVotes } |> withCmd (Lamdera.sendToBackend (ChangedVoteToBackend model.roomId vote))
 
         StartedNewRoundFrontendMsg ->
             { model | mySelectedVote = Nothing, othersVotes = [] } |> withCmd (Lamdera.sendToBackend StartedNewRoundToBackend)
+
+        JoinedRoomFrontendMsg roomId ->
+            model |> withCmd (Lamdera.sendToBackend (JoinedRoomToBackend roomId))
+
+        ChangedRoomIdInput roomIdInput ->
+            { model | roomIdInput = roomIdInput } |> withNoCmd
+
+
+urlParser url =
+    let
+        appUrl =
+            AppUrl.fromUrl url
+    in
+    case appUrl.path of
+        [ "plan", x ] ->
+            RoomPage x
+
+        _ ->
+            LobbyPage
 
 
 updateFromBackend : ToFrontend -> Model -> ( Model, Cmd FrontendMsg )
@@ -87,6 +119,9 @@ updateFromBackend msg model =
             in
             { model | othersVotes = v, mySelectedVote = myVote } |> withNoCmd
 
+        JoinedRoomWithIdToFrontend roomId ->
+            { model | roomId = roomId } |> withCmd (Nav.pushUrl model.key ("/plan/" ++ roomId))
+
 
 view : Model -> Browser.Document FrontendMsg
 view model =
@@ -97,11 +132,28 @@ view model =
     }
 
 
+hasJoinedRoom model =
+    (model.roomId |> String.trim |> String.isEmpty) |> not
+
+
 viewContent model =
     column [ width fill ]
-        [ viewHeader
-        , viewPickedCards model
+        ([ viewHeader
+         ]
+            ++ [ if hasJoinedRoom model then
+                    viewWhenJoinedRoom model
+
+                 else
+                    viewJoinRoom model
+               ]
+        )
+
+
+viewWhenJoinedRoom model =
+    column [ width fill ]
+        [ viewPickedCards model
         , model.mySelectedVote |> Maybe.map viewSelectedCard |> Maybe.withDefault (viewCardRow model)
+        , el [ centerX, padding 40 ] (text ("You are in room: " ++ model.roomId))
         ]
 
 
@@ -109,6 +161,26 @@ viewSelectedCard card =
     column [ centerX ]
         [ paragraph [] [ text ("You voted: " ++ cardTypeToString card) ]
         , Input.button [ Border.rounded 4, Bg.color (rgb255 240 180 180), padding 12 ] { label = el [] (text "Start new voting round\nfor everyone ♻"), onPress = Just StartedNewRoundFrontendMsg }
+        ]
+
+
+viewJoinRoom model =
+    column [ centerX ]
+        [ paragraph [] [ text "Create or join a room!" ]
+        , Input.text []
+            { onChange = \text -> ChangedRoomIdInput text
+            , text = model.roomIdInput
+            , placeholder = Just (Input.placeholder [] (text "The room id to join"))
+            , label = Input.labelAbove [] (el [] (text "Cool Stuff"))
+            }
+        , Input.button
+            [ if model.roomIdInput |> String.trim |> String.isEmpty then
+                Bg.color (rgb255 90 90 90)
+
+              else
+                Bg.color (rgb255 100 255 100)
+            ]
+            { label = el [] (text "Join or Create Room"), onPress = Just (JoinedRoomFrontendMsg model.roomIdInput) }
         ]
 
 
@@ -122,7 +194,7 @@ cardTypes =
 
 
 viewPickedCards model =
-    wrappedRow [ centerX, spacing -20 ] (model.othersVotes |> List.map viewCard)
+    wrappedRow [ centerX, spacing -20 ] (model.othersVotes |> List.reverse |> List.map viewCard)
 
 
 viewCardRow : Model -> Element FrontendMsg
