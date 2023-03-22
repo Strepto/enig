@@ -71,7 +71,16 @@ update msg model =
                     )
 
         UrlChanged url ->
-            ( { model | route = urlParser url }, Cmd.none )
+            let
+                route =
+                    urlParser url
+            in
+            case route of
+                RoomPage code ->
+                    { model | route = route, roomId = code } |> withNoCmd
+
+                _ ->
+                    ( { model | route = urlParser url, roomId = "" }, Cmd.none )
 
         NoOpFrontendMsg ->
             ( model, Cmd.none )
@@ -128,7 +137,7 @@ view : Model -> Browser.Document FrontendMsg
 view model =
     { title = "Enig"
     , body =
-        [ Element.layout [] (viewContent model)
+        [ Element.layout [ Bg.color (rgb255 240 240 240) ] (viewContent model)
         ]
     }
 
@@ -172,35 +181,41 @@ viewSelectedCard card =
 
 
 viewJoinRoom model =
-    column [ centerX, centerY, spacing 10 ]
+    column [ centerX, width (480 |> px), spacing 10, padding 64 ]
         [ paragraph []
-            [ text "Create a new session or join an ongoing!"
+            [ text "Enig is another estimation app! It cuts estimation to the bare minimum."
             ]
-        , Input.button
-            [ Bg.color (rgb255 100 255 100)
-            , padding 10
-            , Border.rounded 4
-            ]
-            { label = el [] (text "Create Session"), onPress = Just (JoinedRoomFrontendMsg "") }
-        , el [ height (25 |> px) ] (text "")
-        , Input.text
-            [ ElmUi.Keyboard.onEnterUp (JoinedRoomFrontendMsg model.roomIdInput)
-            ]
-            { onChange = \text -> ChangedRoomIdInput text
-            , text = model.roomIdInput
-            , placeholder = Just (Input.placeholder [] (text "The session to join"))
-            , label = Input.labelAbove [] (el [] (text "Join an existing session"))
-            }
-        , Input.button
-            [ if model.roomIdInput |> String.trim |> String.isEmpty then
-                Bg.color (rgb255 90 90 90)
+        , el [ height (30 |> px) ] none
+        , column [ Bg.color colorWhite, Border.rounded 10, padding 10, spacing 10 ]
+            [ paragraph []
+                [ text "Start a new session or join an ongoing!"
+                ]
+            , Input.button
+                [ Bg.color (rgb255 100 255 100)
+                , padding 10
+                , Border.rounded 4
+                ]
+                { label = el [] (text "Start Session"), onPress = Just (JoinedRoomFrontendMsg "") }
+            , el [ height (25 |> px) ] (text "")
+            , Input.text
+                [ ElmUi.Keyboard.onEnterUp (JoinedRoomFrontendMsg model.roomIdInput)
+                ]
+                { onChange = \text -> ChangedRoomIdInput text
+                , text = model.roomIdInput
+                , placeholder = Just (Input.placeholder [] (text "Session code"))
+                , label = Input.labelAbove [] (el [] (text "Join an existing session"))
+                }
+            , Input.button
+                [ if model.roomIdInput |> String.trim |> String.isEmpty then
+                    Bg.color (rgb255 90 90 90)
 
-              else
-                Bg.color (rgb255 100 255 100)
-            , padding 10
-            , Border.rounded 4
+                  else
+                    Bg.color (rgb255 100 255 100)
+                , padding 10
+                , Border.rounded 4
+                ]
+                { label = el [] (text "Join Session"), onPress = Just (JoinedRoomFrontendMsg model.roomIdInput) }
             ]
-            { label = el [] (text "Join Session"), onPress = Just (JoinedRoomFrontendMsg model.roomIdInput) }
         ]
 
 
