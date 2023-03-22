@@ -11,6 +11,7 @@ import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
 import ElmUi.Cursor as Cursor
+import ElmUi.Keyboard
 import Lamdera
 import Types exposing (..)
 import Url
@@ -137,7 +138,7 @@ hasJoinedRoom model =
 
 
 viewContent model =
-    column [ width fill ]
+    column [ width fill, height fill ]
         ([ viewHeader
          ]
             ++ [ if hasJoinedRoom model then
@@ -165,13 +166,24 @@ viewSelectedCard card =
 
 
 viewJoinRoom model =
-    column [ centerX ]
-        [ paragraph [] [ text "Create or join a room!" ]
-        , Input.text []
+    column [ centerX, centerY, spacing 10 ]
+        [ paragraph []
+            [ text "Create a new session or join an ongoing!"
+            ]
+        , Input.button
+            [ Bg.color (rgb255 100 255 100)
+            , padding 10
+            , Border.rounded 4
+            ]
+            { label = el [] (text "Create Session"), onPress = Just (JoinedRoomFrontendMsg "") }
+        , el [ height (25 |> px) ] (text "")
+        , Input.text
+            [ ElmUi.Keyboard.onEnterUp (JoinedRoomFrontendMsg model.roomIdInput)
+            ]
             { onChange = \text -> ChangedRoomIdInput text
             , text = model.roomIdInput
-            , placeholder = Just (Input.placeholder [] (text "The room id to join"))
-            , label = Input.labelAbove [] (el [] (text "Cool Stuff"))
+            , placeholder = Just (Input.placeholder [] (text "The session to join"))
+            , label = Input.labelAbove [] (el [] (text "Join an existing session"))
             }
         , Input.button
             [ if model.roomIdInput |> String.trim |> String.isEmpty then
@@ -179,8 +191,10 @@ viewJoinRoom model =
 
               else
                 Bg.color (rgb255 100 255 100)
+            , padding 10
+            , Border.rounded 4
             ]
-            { label = el [] (text "Join or Create Room"), onPress = Just (JoinedRoomFrontendMsg model.roomIdInput) }
+            { label = el [] (text "Join Session"), onPress = Just (JoinedRoomFrontendMsg model.roomIdInput) }
         ]
 
 

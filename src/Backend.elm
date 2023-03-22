@@ -3,8 +3,10 @@ module Backend exposing (..)
 import Cmd.Extra exposing (withCmd, withCmds, withNoCmd)
 import Dict
 import Lamdera exposing (ClientId, SessionId)
+import Random
 import Set
 import Types exposing (..)
+import Utils
 
 
 type alias Model =
@@ -32,6 +34,7 @@ init =
     ( { message = "Hello!"
       , rooms = Dict.empty
       , clientRooms = Dict.empty
+      , randomNext = Random.initialSeed 1
       }
     , Cmd.none
     )
@@ -125,8 +128,16 @@ updateFromFrontend sessionId clientId msg model =
 
         JoinedRoomToBackend roomIdInput ->
             let
-                roomId =
-                    roomIdInput |> String.toLower
+                ( roomId, nextSeed ) =
+                    let
+                        trimmedRoomId =
+                            roomIdInput |> String.toLower |> String.trim |> String.left 20
+                    in
+                    if trimmedRoomId |> String.isEmpty then
+                        Random.step Utils.getRandomWord model.randomNext
+
+                    else
+                        ( trimmedRoomId, model.randomNext )
 
                 existingRoom =
                     model.rooms |> Dict.get roomId
@@ -149,7 +160,7 @@ updateFromFrontend sessionId clientId msg model =
                 newRooms =
                     model.rooms |> Dict.insert roomId newRoomData
             in
-            { model | rooms = newRooms, clientRooms = model.clientRooms |> Dict.insert clientId roomId } |> withCmd (Lamdera.sendToFrontend clientId (JoinedRoomWithIdToFrontend roomId))
+            { model | rooms = newRooms, clientRooms = model.clientRooms |> Dict.insert clientId roomId, randomNext = nextSeed } |> withCmd (Lamdera.sendToFrontend clientId (JoinedRoomWithIdToFrontend roomId))
 
 
 addVoteToRoom : Room -> Vote -> ClientId -> Room
