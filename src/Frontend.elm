@@ -154,7 +154,13 @@ viewWhenJoinedRoom model =
     column [ width fill ]
         [ viewPickedCards model
         , model.mySelectedVote |> Maybe.map viewSelectedCard |> Maybe.withDefault (viewCardRow model)
-        , el [ centerX, padding 40 ] (text ("You are in room: " ++ model.roomId))
+        , el [ centerX, padding 40 ]
+            (paragraph []
+                [ text "You are in session: '"
+                , el [ Font.family [ Font.monospace ] ] (text model.roomId)
+                , text "'. Share the code or url with others for them to join you."
+                ]
+            )
         ]
 
 
@@ -213,8 +219,11 @@ viewPickedCards model =
 
 viewCardRow : Model -> Element FrontendMsg
 viewCardRow model =
-    row [ centerX, centerY, spacing 10 ]
-        (cardTypes |> List.map (\c -> viewCardClickable c))
+    column [ centerX, centerY ]
+        [ row [ centerX, centerY, spacing 10 ]
+            (cardTypes |> List.map (\c -> viewCardClickable c))
+        , paragraph [] [ text "Choose your vote by clicking a card." ]
+        ]
 
 
 viewCardClickable card =
