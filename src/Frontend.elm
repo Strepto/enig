@@ -169,7 +169,7 @@ viewContent model =
 
 
 viewWhenJoinedRoom model =
-    column [ width fill ]
+    column [ width fill, spacing 16 ]
         [ viewPickedCards model
         , model.mySelectedVote |> Maybe.map viewSelectedCard |> Maybe.withDefault (viewCardRow model)
         , el [ centerX, padding 40 ]
