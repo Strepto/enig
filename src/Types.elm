@@ -19,6 +19,7 @@ type alias FrontendModel =
     , route : Route
     , mySelectedVote : Maybe Vote
     , othersVotes : List Vote
+    , userCount : Int
     , roomIdInput : String
     , roomId : String
     }
@@ -81,4 +82,5 @@ type BackendMsg
 type ToFrontend
     = NoOpToFrontend
     | VotesUpdated (List Vote)
+    | UsersInRoomUpdated Int
     | JoinedRoomWithIdToFrontend RoomId (List Vote)

@@ -43,6 +43,7 @@ init url key =
       , route = route
       , mySelectedVote = Nothing
       , othersVotes = []
+      , userCount = 0
       , roomIdInput = ""
       , roomId = ""
       }
@@ -129,6 +130,9 @@ updateFromBackend msg model =
             in
             { model | othersVotes = v, mySelectedVote = myVote } |> withNoCmd
 
+        UsersInRoomUpdated count ->
+            { model | userCount = count } |> withNoCmd
+
         JoinedRoomWithIdToFrontend roomId votes ->
             { model | roomId = roomId, othersVotes = votes, mySelectedVote = Nothing } |> withCmd (Nav.pushUrl model.key ("/plan/" ++ roomId))
 
@@ -168,6 +172,7 @@ viewWhenJoinedRoom model =
                 [ text "You are in session: '"
                 , el [ Font.family [ Font.monospace ] ] (text model.roomId)
                 , text "'. Share the code or url with others for them to join you."
+                , text <| " You are " ++ String.fromInt model.userCount ++ " users in this session."
                 ]
             )
         ]
