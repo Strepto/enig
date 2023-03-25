@@ -234,7 +234,7 @@ viewJoinRoom model =
 
 
 viewHeader =
-    row [ width fill, height (48 |> px), padding 10, Bg.color (rgb255 100 240 200) ] [ text "Enig: Agree on anything" ]
+    row [ width fill, height (48 |> px), padding 10, Bg.color (rgb255 100 240 200) ] [ text "🤝 Enig: Agree on anything" ]
 
 
 cardTypes : List Vote
