@@ -3,6 +3,8 @@ module Backend exposing (..)
 import Cmd.Extra exposing (addCmd, addCmds, withCmd, withCmds, withNoCmd)
 import Dict
 import Lamdera exposing (ClientId, SessionId)
+import List.Extra
+import Maybe
 import Random
 import Set
 import Types exposing (..)
@@ -50,20 +52,23 @@ update msg model =
             ( model, Cmd.none )
 
         ClientDisconnected sessionId clientId ->
-            ( cleanup model clientId, Cmd.none )
+            cleanup model clientId
 
 
-cleanup : Model -> ClientId -> Model
+cleanup : Model -> ClientId -> ( Model, Cmd BackendMsg )
 cleanup model clientId =
     let
         existingClientRoomId =
             model.clientRooms |> Dict.get clientId
 
-        existingRoom =
+        maybeCleanedExistingRoom =
             existingClientRoomId |> Maybe.andThen (\roomId -> model.rooms |> Dict.get roomId |> Maybe.map (removeClientFromRoom clientId))
 
+        notifyOthersInRoom =
+            maybeCleanedExistingRoom |> Maybe.map sendRoomStateToRoomClients |> Maybe.withDefault []
+
         newRooms =
-            (case existingRoom of
+            (case maybeCleanedExistingRoom of
                 Just room ->
                     model.rooms
                         |> Dict.insert room.roomId room
@@ -75,6 +80,7 @@ cleanup model clientId =
                 |> Dict.filter (\key value -> value.clients |> (not << Set.isEmpty))
     in
     { model | clientRooms = model.clientRooms |> Dict.remove clientId, rooms = newRooms }
+        |> withCmds notifyOthersInRoom
 
 
 removeClientFromRoom : ClientId -> Room -> Room
@@ -207,7 +213,12 @@ addVoteToRoom : Room -> Vote -> ClientId -> Room
 addVoteToRoom r vote clientId =
     let
         newVotes =
-            { vote = vote, client = clientId } :: r.votes |> List.take 100
+            ({ vote = vote, client = clientId }
+                :: r.votes
+            )
+                |> List.Extra.uniqueBy (\x -> x.client)
+                -- Limit to max 100 votes
+                |> List.take 100
     in
     { r
         | clients = r.clients |> Set.insert clientId
