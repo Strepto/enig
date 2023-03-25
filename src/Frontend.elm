@@ -174,7 +174,7 @@ viewWhenJoinedRoom model =
         , model.mySelectedVote |> Maybe.map viewSelectedCard |> Maybe.withDefault (viewCardRow model)
         , el [ centerX, padding 40 ]
             (paragraph []
-                [ text "You are in session: '"
+                [ text "You are in session '"
                 , el [ Font.family [ Font.monospace ] ] (text model.roomId)
                 , text "'. "
                 , if model.userCount < 2 then
