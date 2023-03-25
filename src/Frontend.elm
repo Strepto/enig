@@ -139,7 +139,14 @@ updateFromBackend msg model =
 
 view : Model -> Browser.Document FrontendMsg
 view model =
-    { title = "Enig"
+    { title =
+        "Enig 🤝"
+            ++ (if hasJoinedRoom model then
+                    " " ++ model.roomId
+
+                else
+                    ""
+               )
     , body =
         [ Element.layout [ Bg.color (rgb255 240 240 240) ] (viewContent model)
         ]
@@ -152,15 +159,13 @@ hasJoinedRoom model =
 
 viewContent model =
     column [ width fill, height fill ]
-        ([ viewHeader
-         ]
-            ++ [ if hasJoinedRoom model then
-                    viewWhenJoinedRoom model
+        [ viewHeader
+        , if hasJoinedRoom model then
+            viewWhenJoinedRoom model
 
-                 else
-                    viewJoinRoom model
-               ]
-        )
+          else
+            viewJoinRoom model
+        ]
 
 
 viewWhenJoinedRoom model =
@@ -171,8 +176,12 @@ viewWhenJoinedRoom model =
             (paragraph []
                 [ text "You are in session: '"
                 , el [ Font.family [ Font.monospace ] ] (text model.roomId)
-                , text "'. Share the code or url with others for them to join you."
-                , text <| " You are " ++ String.fromInt model.userCount ++ " users in this session."
+                , text "'. "
+                , if model.userCount < 2 then
+                    text "Share the code (or url) with others for them to join you."
+
+                  else
+                    text <| "" ++ String.fromInt model.userCount ++ " people are here."
                 ]
             )
         ]
