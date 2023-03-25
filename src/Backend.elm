@@ -160,7 +160,7 @@ updateFromFrontend sessionId clientId msg model =
                 newRooms =
                     model.rooms |> Dict.insert roomId newRoomData
             in
-            { model | rooms = newRooms, clientRooms = model.clientRooms |> Dict.insert clientId roomId, randomNext = nextSeed } |> withCmd (Lamdera.sendToFrontend clientId (JoinedRoomWithIdToFrontend roomId))
+            { model | rooms = newRooms, clientRooms = model.clientRooms |> Dict.insert clientId roomId, randomNext = nextSeed } |> withCmd (Lamdera.sendToFrontend clientId (JoinedRoomWithIdToFrontend roomId (newRoomData.votes |> List.map .vote)))
 
 
 addVoteToRoom : Room -> Vote -> ClientId -> Room

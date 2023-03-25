@@ -129,8 +129,8 @@ updateFromBackend msg model =
             in
             { model | othersVotes = v, mySelectedVote = myVote } |> withNoCmd
 
-        JoinedRoomWithIdToFrontend roomId ->
-            { model | roomId = roomId } |> withCmd (Nav.pushUrl model.key ("/plan/" ++ roomId))
+        JoinedRoomWithIdToFrontend roomId votes ->
+            { model | roomId = roomId, othersVotes = votes, mySelectedVote = Nothing } |> withCmd (Nav.pushUrl model.key ("/plan/" ++ roomId))
 
 
 view : Model -> Browser.Document FrontendMsg

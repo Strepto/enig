@@ -81,4 +81,4 @@ type BackendMsg
 type ToFrontend
     = NoOpToFrontend
     | VotesUpdated (List Vote)
-    | JoinedRoomWithIdToFrontend RoomId
+    | JoinedRoomWithIdToFrontend RoomId (List Vote)
