@@ -213,7 +213,7 @@ viewWhenJoinedRoom model =
 
 viewSelectedCard card =
     column [ centerX, spacing 10 ]
-        [ paragraph [] [ text "You voted: ", el [] (text (cardTypeToString card)) ]
+        [ paragraph [ Font.center ] [ text "You voted: ", el [] (text (cardTypeToString card)) ]
         , viewButton { label = "Start new round ♻", action = StartedNewRoundFrontendMsg }
         ]
 
