@@ -170,8 +170,9 @@ viewContent model =
 
 
 viewWhenJoinedRoom model =
-    column [ width fill, spacing 16 ]
+    column [ width fill, spacing 16, paddingXY 0 10 ]
         [ viewPickedCards model
+        , el [ width fill, height (px 1), Bg.color <| colorBlackWithAlpha01 0.1 ] none
         , model.mySelectedVote |> Maybe.map viewSelectedCard |> Maybe.withDefault (viewCardRow model)
         , el [ centerX, padding 40 ]
             (paragraph []
@@ -189,54 +190,92 @@ viewWhenJoinedRoom model =
 
 
 viewSelectedCard card =
-    column [ centerX ]
-        [ paragraph [] [ text ("You voted: " ++ cardTypeToString card) ]
-        , Input.button [ Border.rounded 4, Bg.color (rgb255 240 180 180), padding 12 ] { label = el [] (text "Start new voting round\nfor everyone ♻"), onPress = Just StartedNewRoundFrontendMsg }
+    column [ centerX, spacing 10 ]
+        [ paragraph [] [ text "You voted: ", el [] (text (cardTypeToString card)) ]
+        , viewButton { label = "Start new round ♻", action = StartedNewRoundFrontendMsg }
         ]
 
 
 viewJoinRoom model =
-    column [ centerX, width (480 |> px), spacing 10, padding 64 ]
+    column [ centerX, width (520 |> px), spacing 10, padding 64 ]
         [ paragraph [ padding 10 ]
-            [ text "Enig is another estimation app! It cuts estimation to the bare minimum."
+            [ text "Enig is just another estimation app! It cuts estimation to the bare minimum."
             ]
         , el [ height (30 |> px) ] none
-        , column [ Bg.color colorWhite, Border.rounded 10, padding 10, spacing 10 ]
-            [ paragraph []
-                [ text "Start a new session or use a code to join your colleagues!"
-                ]
-            , Input.button
-                [ Bg.color (rgb255 100 255 100)
-                , padding 10
-                , Border.rounded 4
-                ]
-                { label = el [] (text "New Session"), onPress = Just (JoinedRoomFrontendMsg "") }
-            , el [ height (25 |> px) ] (text "")
-            , Input.text
-                [ ElmUi.Keyboard.onEnterUp (JoinedRoomFrontendMsg model.roomIdInput)
-                , htmlAttribute (Html.Attributes.style "text-transform" "lowercase")
-                ]
-                { onChange = \text -> ChangedRoomIdInput text
-                , text = model.roomIdInput
-                , placeholder = Just (Input.placeholder [] (text "Session code"))
-                , label = Input.labelAbove [] (el [] (text "Join an existing session"))
+        , column
+            [ Bg.color colorWhite
+            , Border.rounded 10
+            , padding 10
+            , Border.shadow
+                { offset = ( 0, 2 )
+                , size = 2
+                , blur = 2
+                , color = colorBlackWithAlpha01 0.1
                 }
-            , Input.button
-                [ if model.roomIdInput |> String.trim |> String.isEmpty then
-                    Bg.color (rgb255 90 90 90)
+            ]
+            [ column
+                [ spacing 10
+                , padding 10
+                ]
+                [ paragraph []
+                    [ text "Start a new session, or use a code to join your colleagues!"
+                    ]
+                , viewButton { label = "New Session", action = JoinedRoomFrontendMsg "" }
+                , el [ height (25 |> px) ] (text "")
+                , Input.text
+                    [ ElmUi.Keyboard.onEnterUp (JoinedRoomFrontendMsg model.roomIdInput)
+                    , htmlAttribute (Html.Attributes.style "text-transform" "lowercase")
+                    ]
+                    { onChange = \text -> ChangedRoomIdInput text
+                    , text = model.roomIdInput
+                    , placeholder = Just (Input.placeholder [] (text "Session code"))
+                    , label = Input.labelAbove [] (el [] (text "Join your colleagues:"))
+                    }
+                , if model.roomIdInput |> String.isEmpty |> not then
+                    viewButton { label = "Join session", action = JoinedRoomFrontendMsg "" }
 
                   else
-                    Bg.color (rgb255 100 255 100)
-                , padding 10
-                , Border.rounded 4
+                    none
                 ]
-                { label = el [] (text "Join Session"), onPress = Just (JoinedRoomFrontendMsg model.roomIdInput) }
             ]
         ]
 
 
 viewHeader =
-    row [ width fill, height (48 |> px), padding 10, Bg.color (rgb255 100 240 200) ] [ text "🤝 Enig: Agree on anything" ]
+    row
+        [ width fill
+        , height (48 |> px)
+        , paddingXY 4 0
+        , Bg.color (rgb255 100 240 200)
+        , Border.shadow
+            { offset = ( -2, 0 )
+            , size = 0
+            , blur = 5
+            , color = colorBlack
+            }
+        ]
+        [ link []
+            { url = "/"
+            , label =
+                row []
+                    [ el [ Font.size 25, centerY, paddingXY 6 0 ] (text "🤝")
+                    , el
+                        [ centerY
+                        , Border.widthEach
+                            { bottom = 1
+                            , left = 0
+                            , right = 0
+                            , top = 0
+                            }
+                        , Border.color colorTransparent
+                        , mouseOver
+                            [ Border.color colorBlack
+                            ]
+                        ]
+                        (text "Enig: Agree on anything")
+                    ]
+            }
+        ]
 
 
 cardTypes : List Vote
@@ -244,8 +283,13 @@ cardTypes =
     [ TFB, NFC, One ]
 
 
+viewPickedCards : Model -> Element FrontendMsg
 viewPickedCards model =
-    wrappedRow [ centerX, spacing -20 ] (model.othersVotes |> List.reverse |> List.map viewCard)
+    if model.othersVotes |> List.isEmpty |> not then
+        wrappedRow [ centerX, spacing -20 ] (model.othersVotes |> List.reverse |> List.map viewCard)
+
+    else
+        row [ centerX, height (px 160), Font.color (colorBlackWithAlpha01 0.8) ] [ paragraph [] [ text "Nobody has voted yet" ] ]
 
 
 viewCardRow : Model -> Element FrontendMsg
@@ -258,7 +302,14 @@ viewCardRow model =
 
 
 viewCardClickable card =
-    Input.button []
+    Input.button
+        [ Border.width 1
+        , Border.rounded 10
+        , Border.color colorTransparent
+        , mouseOver
+            [ Border.color (colorBlackWithAlpha01 0.5)
+            ]
+        ]
         { label = viewCard card
         , onPress = Just <| ChangedVoteFrontendMsg card
         }
@@ -288,8 +339,15 @@ viewCard card =
         , Bg.gradient { angle = 20, steps = cardColorScheme card }
         , padding 30
         , Element.behindContent (el [ centerX, centerY, Font.bold, rotate (degrees 80), Font.size 80, Element.alpha 0.5 ] (text (cardTypeToShortString card)))
+        , htmlAttribute (Html.Attributes.style "transition" "opacity 0.1s")
+        , Border.shadow
+            { offset = ( -2, 1 )
+            , size = 0
+            , blur = 3
+            , color = colorBlackWithAlpha01 0.3
+            }
         ]
-        [ el [ centerX, Bg.color colorWhite, padding 8, Border.rounded 10 ] (paragraph [] [ text (cardTypeToString card) ]) ]
+        [ el [ centerX, Bg.color colorWhite, padding 8, Border.rounded 10 ] (paragraph [ Font.center ] [ text (cardTypeToString card) ]) ]
 
 
 colorWhite =
@@ -298,6 +356,14 @@ colorWhite =
 
 colorBlack =
     rgb255 10 10 10
+
+
+colorTransparent =
+    colorBlackWithAlpha01 0
+
+
+colorBlackWithAlpha01 alpha =
+    rgba255 0 0 0 alpha
 
 
 cardTypeToString cardType =
@@ -309,7 +375,66 @@ cardTypeToString cardType =
             "No Clue 🤷"
 
         One ->
-            "1"
+            "1 🎉"
+
+
+borderOutline =
+    htmlAttribute (Html.Attributes.style "outline" "3px solid ")
+
+
+viewButton : { label : String, action : msg } -> Element msg
+viewButton { label, action } =
+    let
+        bgColor =
+            rgb255 0 122 60
+
+        shadowColor =
+            rgb255 0 42 24
+
+        bgHoverColor =
+            rgb255 0 90 48
+
+        focusOutlineColor =
+            rgb255 255 221 0
+    in
+    Input.button
+        [ paddingEach
+            { top = 8
+            , right = 10
+            , bottom = 7
+            , left = 10
+            }
+        , Bg.color bgColor
+        , Font.color colorWhite
+        , Border.width 2
+        , Border.color bgColor
+        , Border.shadow
+            { offset = ( 0, 3 )
+            , size = 0
+            , blur = 0
+            , color = shadowColor
+            }
+        , Border.rounded 4
+        , mouseOver
+            [ Bg.color bgHoverColor
+            , Border.color bgHoverColor
+            , Font.color colorWhite
+            ]
+        , focused
+            [ Border.color focusOutlineColor
+            , Bg.color focusOutlineColor
+            , Font.color colorBlack
+            , Border.shadow
+                { offset = ( 0, 0 )
+                , size = -2
+                , blur = 0
+                , color = focusOutlineColor
+                }
+            ]
+        ]
+        { onPress = Just action
+        , label = el [] (Element.text label)
+        }
 
 
 cardTypeToShortString cardType =
