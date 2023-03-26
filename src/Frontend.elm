@@ -10,6 +10,7 @@ import Element.Border as Border
 import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
+import Element.Region
 import ElmUi.Cursor as Cursor
 import ElmUi.Keyboard
 import Html.Attributes
@@ -149,9 +150,29 @@ view model =
                     ""
                )
     , body =
-        [ Element.layout [ Bg.color (rgb255 240 240 240) ] (viewContent model)
+        [ Element.layout [ Bg.color (rgb255 240 240 240) ]
+            (column [ width fill, height fill ]
+                [ viewHeader
+                , viewContent model
+                , viewFooter
+                ]
+            )
         ]
     }
+
+
+viewFooter =
+    row [ alignBottom, centerX, Font.color (colorBlackWithAlpha01 0.3) ]
+        [ newTabLink []
+            { url = "https://github.com/Strepto/enig"
+            , label =
+                el
+                    [ Font.family [ Font.monospace ]
+                    , Font.size 12
+                    ]
+                    (text "Enig by Nils Henrik Hals")
+            }
+        ]
 
 
 hasJoinedRoom model =
@@ -159,9 +180,8 @@ hasJoinedRoom model =
 
 
 viewContent model =
-    column [ width fill, height fill ]
-        [ viewHeader
-        , if hasJoinedRoom model then
+    column [ width fill, height fill, Element.Region.mainContent ]
+        [ if hasJoinedRoom model then
             viewWhenJoinedRoom model
 
           else
@@ -180,7 +200,9 @@ viewWhenJoinedRoom model =
                 , el [ Font.family [ Font.monospace ] ] (text model.roomId)
                 , text "'. "
                 , if model.userCount < 2 then
-                    text "Share the code (or url) with others for them to join you."
+                    paragraph []
+                        [ text <| "Share the code '" ++ model.roomId ++ "' (or url) with others for them to join you."
+                        ]
 
                   else
                     text <| "" ++ String.fromInt model.userCount ++ " people are here."
@@ -285,11 +307,13 @@ cardTypes =
 
 viewPickedCards : Model -> Element FrontendMsg
 viewPickedCards model =
-    if model.othersVotes |> List.isEmpty |> not then
-        wrappedRow [ centerX, spacing -20 ] (model.othersVotes |> List.reverse |> List.map viewCard)
+    row [ Element.Region.announce, width fill, Element.Region.description "Picked cards" ]
+        [ if model.othersVotes |> List.isEmpty |> not then
+            wrappedRow [ centerX, spacing -20 ] (model.othersVotes |> List.reverse |> List.map viewCard)
 
-    else
-        row [ centerX, height (px 160), Font.color (colorBlackWithAlpha01 0.8) ] [ paragraph [] [ text "Nobody has voted yet" ] ]
+          else
+            row [ centerX, height (px 160), Font.color (colorBlackWithAlpha01 0.8) ] [ paragraph [] [ text "Nobody has voted yet" ] ]
+        ]
 
 
 viewCardRow : Model -> Element FrontendMsg
@@ -333,12 +357,13 @@ cardColorScheme card =
 
 viewCard card =
     column
-        [ width (100 |> px)
+        [ Element.Region.description ("Card: " ++ cardTypeToString card)
+        , width (100 |> px)
         , height (160 |> px)
         , Border.rounded 10
         , Bg.gradient { angle = 20, steps = cardColorScheme card }
         , padding 30
-        , Element.behindContent (el [ centerX, centerY, Font.bold, rotate (degrees 80), Font.size 80, Element.alpha 0.5 ] (text (cardTypeToShortString card)))
+        , Element.behindContent (el [ centerX, centerY, Font.bold, rotate (degrees 80), Font.size 80, Element.alpha 0.5, Element.Region.description "" ] (text (cardTypeToShortString card)))
         , htmlAttribute (Html.Attributes.style "transition" "opacity 0.1s")
         , Border.shadow
             { offset = ( -2, 1 )
@@ -347,7 +372,7 @@ viewCard card =
             , color = colorBlackWithAlpha01 0.3
             }
         ]
-        [ el [ centerX, Bg.color colorWhite, padding 8, Border.rounded 10 ] (paragraph [ Font.center ] [ text (cardTypeToString card) ]) ]
+        [ el [ centerX, centerY, Bg.color colorWhite, padding 8, Border.rounded 10 ] (paragraph [ Font.center ] [ text (cardTypeToString card) ]) ]
 
 
 colorWhite =
