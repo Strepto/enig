@@ -12,6 +12,7 @@ import Element.Font as Font
 import Element.Input as Input
 import ElmUi.Cursor as Cursor
 import ElmUi.Keyboard
+import Html.Attributes
 import Lamdera
 import Types exposing (..)
 import Url
@@ -196,23 +197,24 @@ viewSelectedCard card =
 
 viewJoinRoom model =
     column [ centerX, width (480 |> px), spacing 10, padding 64 ]
-        [ paragraph []
+        [ paragraph [ padding 10 ]
             [ text "Enig is another estimation app! It cuts estimation to the bare minimum."
             ]
         , el [ height (30 |> px) ] none
         , column [ Bg.color colorWhite, Border.rounded 10, padding 10, spacing 10 ]
             [ paragraph []
-                [ text "Start a new session or join an ongoing!"
+                [ text "Start a new session or use a code to join your colleagues!"
                 ]
             , Input.button
                 [ Bg.color (rgb255 100 255 100)
                 , padding 10
                 , Border.rounded 4
                 ]
-                { label = el [] (text "Start Session"), onPress = Just (JoinedRoomFrontendMsg "") }
+                { label = el [] (text "New Session"), onPress = Just (JoinedRoomFrontendMsg "") }
             , el [ height (25 |> px) ] (text "")
             , Input.text
                 [ ElmUi.Keyboard.onEnterUp (JoinedRoomFrontendMsg model.roomIdInput)
+                , htmlAttribute (Html.Attributes.style "text-transform" "lowercase")
                 ]
                 { onChange = \text -> ChangedRoomIdInput text
                 , text = model.roomIdInput
