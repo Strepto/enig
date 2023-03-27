@@ -254,7 +254,7 @@ viewJoinRoom model =
                     , label = Input.labelAbove [] (el [] (text "Join your colleagues:"))
                     }
                 , if model.roomIdInput |> String.isEmpty |> not then
-                    viewButton { label = "Join session", action = JoinedRoomFrontendMsg "" }
+                    viewButton { label = "Join session", action = JoinedRoomFrontendMsg model.roomIdInput }
 
                   else
                     none
