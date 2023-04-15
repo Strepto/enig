@@ -11,7 +11,6 @@ import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
 import Element.Region
-import ElmUi.Cursor as Cursor
 import ElmUi.Keyboard
 import Html.Attributes
 import Lamdera
@@ -193,7 +192,9 @@ viewWhenJoinedRoom model =
     column [ width fill, spacing 16, paddingXY 0 10 ]
         [ viewPickedCards model
         , el [ width fill, height (px 1), Bg.color <| colorBlackWithAlpha01 0.1 ] none
-        , model.mySelectedVote |> Maybe.map viewSelectedCard |> Maybe.withDefault (viewCardRow model)
+        , column [ centerX, height (200 |> px) ]
+            [ model.mySelectedVote |> Maybe.map viewSelectedCard |> Maybe.withDefault (viewCardRow model)
+            ]
         , el [ centerX, padding 40 ]
             (paragraph []
                 [ text "You are in session '"
@@ -219,11 +220,12 @@ viewSelectedCard card =
 
 
 viewJoinRoom model =
-    column [ centerX, width (520 |> px), spacing 10, padding 64 ]
-        [ paragraph [ padding 10 ]
-            [ text "Enig is just another estimation app! It cuts estimation to the bare minimum."
+    column [ centerX, width (fill |> Element.maximum 520), spacing 10, padding 20 ]
+        [ column [ padding 10, spacing 10 ]
+            [ paragraph [] [ text "Enig is an estimation app!" ]
+            , paragraph [] [ text "Cut estimation to the bare minimum by using the NFC / TFB / 1 (sprint) method." ]
             ]
-        , el [ height (30 |> px) ] none
+        , el [ height (10 |> px) ] none
         , column
             [ Bg.color colorWhite
             , Border.rounded 10
@@ -307,8 +309,8 @@ cardTypes =
 
 viewPickedCards : Model -> Element FrontendMsg
 viewPickedCards model =
-    row [ Element.Region.announce, width fill, Element.Region.description "Picked cards" ]
-        [ if model.othersVotes |> List.isEmpty |> not then
+    column [ Element.Region.announce, width fill, Element.Region.description "Picked cards" ]
+        [ if not <| (model.othersVotes |> List.isEmpty) then
             wrappedRow [ centerX, spacing -20 ] (model.othersVotes |> List.reverse |> List.map viewCard)
 
           else
