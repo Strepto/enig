@@ -229,13 +229,13 @@ viewSelectedCard model card =
         [ paragraph [ Font.center ] [ text "You voted: ", el [] (text (cardTypeToString card)) ]
         , viewButton { label = "Start new round ♻", action = StartedNewRoundFrontendMsg }
         , if model.hideVotes then
-            viewButton { label = "Show votes", action = ToggeledHiddenVotes False }
+            viewButton { label = "Reveal votes", action = ToggeledHiddenVotes False }
 
           else
             none
 
         -- , viewButton { label = ifThen "🙈 Hiding" "👀 Showing" model.roomHideVotesState ++ " votes", action = ToggeledHiddenVotesForRoom (model.roomHideVotesState |> not) }
-        , el [ alignBottom ] <| viewToggle { label = "Hidden votes next round", checked = model.roomHideVotesState, action = ToggeledHiddenVotesForRoom }
+        , el [ alignBottom ] <| viewToggle { label = "Hidden votes (next round)", checked = model.roomHideVotesState, action = ToggeledHiddenVotesForRoom }
         ]
 
 
@@ -526,7 +526,7 @@ viewButton { label, action } =
 
 viewToggle : { label : String, checked : Bool, action : Bool -> msg } -> Element msg
 viewToggle { label, checked, action } =
-    Input.checkbox []
+    Input.checkbox [ padding 8, Border.width 1, Border.color (rgba 0 0 0 0), mouseOver [ Border.color <| colorBlackWithAlpha01 0.15 ], focused [ Border.color colorBlack ] ]
         { onChange = action
         , icon =
             \newChecked ->
@@ -535,7 +535,7 @@ viewToggle { label, checked, action } =
                         "✅"
 
                     else
-                        "🟩"
+                        "⬛"
         , checked = checked
         , label = Input.labelLeft [] (el [] (text label))
         }
