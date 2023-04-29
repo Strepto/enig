@@ -44,6 +44,8 @@ init url key =
       , route = route
       , mySelectedVote = Nothing
       , othersVotes = []
+      , hideVotes = False
+      , roomHideVotesState = False
       , userCount = 0
       , roomIdInput = ""
       , roomId = ""
@@ -91,13 +93,19 @@ update msg model =
             { model | mySelectedVote = Just vote, othersVotes = vote :: model.othersVotes } |> withCmd (Lamdera.sendToBackend (ChangedVoteToBackend model.roomId vote))
 
         StartedNewRoundFrontendMsg ->
-            { model | mySelectedVote = Nothing, othersVotes = [] } |> withCmd (Lamdera.sendToBackend StartedNewRoundToBackend)
+            { model | mySelectedVote = Nothing, othersVotes = [] } |> withCmd (Lamdera.sendToBackend (StartedNewRoundToBackend model.roomId))
 
         JoinedRoomFrontendMsg roomId ->
             model |> withCmd (Lamdera.sendToBackend (JoinedRoomToBackend roomId))
 
         ChangedRoomIdInput roomIdInput ->
             { model | roomIdInput = roomIdInput } |> withNoCmd
+
+        ToggeledHiddenVotes hideVotes ->
+            { model | hideVotes = hideVotes } |> withCmd (Lamdera.sendToBackend (ShowVotesInRoomForRound model.roomId (hideVotes |> not)))
+
+        ToggeledHiddenVotesForRoom hideVotes ->
+            { model | roomHideVotesState = hideVotes } |> withCmd (Lamdera.sendToBackend (SetShowVotesInRoomSettingToBackend model.roomId (hideVotes |> not)))
 
 
 urlParser url =
@@ -136,6 +144,9 @@ updateFromBackend msg model =
 
         JoinedRoomWithIdToFrontend roomId votes ->
             { model | roomId = roomId, othersVotes = votes, mySelectedVote = Nothing } |> withCmd (Nav.pushUrl model.key ("/plan/" ++ roomId))
+
+        VoteVisibilityUpdatedToFrontend { displayVotesWhileVoting, revealVotesThisRound } ->
+            { model | hideVotes = revealVotesThisRound |> not, roomHideVotesState = displayVotesWhileVoting |> not } |> withNoCmd
 
 
 view : Model -> Browser.Document FrontendMsg
@@ -193,7 +204,7 @@ viewWhenJoinedRoom model =
         [ viewPickedCards model
         , el [ width fill, height (px 1), Bg.color <| colorBlackWithAlpha01 0.1 ] none
         , column [ centerX, height (200 |> px) ]
-            [ model.mySelectedVote |> Maybe.map viewSelectedCard |> Maybe.withDefault (viewCardRow model)
+            [ model.mySelectedVote |> Maybe.map (viewSelectedCard model) |> Maybe.withDefault (viewCardRow model)
             ]
         , el [ centerX, padding 40 ]
             (paragraph []
@@ -212,11 +223,29 @@ viewWhenJoinedRoom model =
         ]
 
 
-viewSelectedCard card =
-    column [ centerX, spacing 10 ]
+viewSelectedCard : Model -> Vote -> Element FrontendMsg
+viewSelectedCard model card =
+    column [ centerX, spacing 10, height fill ]
         [ paragraph [ Font.center ] [ text "You voted: ", el [] (text (cardTypeToString card)) ]
         , viewButton { label = "Start new round ♻", action = StartedNewRoundFrontendMsg }
+        , if model.hideVotes then
+            viewButton { label = "Show votes", action = ToggeledHiddenVotes False }
+
+          else
+            none
+
+        -- , viewButton { label = ifThen "🙈 Hiding" "👀 Showing" model.roomHideVotesState ++ " votes", action = ToggeledHiddenVotesForRoom (model.roomHideVotesState |> not) }
+        , el [ alignBottom ] <| viewToggle { label = "Hidden votes next round", checked = model.roomHideVotesState, action = ToggeledHiddenVotesForRoom }
         ]
+
+
+ifThenElse : a -> a -> Bool -> a
+ifThenElse then_ else_ what =
+    if what then
+        then_
+
+    else
+        else_
 
 
 viewJoinRoom model =
@@ -311,7 +340,18 @@ viewPickedCards : Model -> Element FrontendMsg
 viewPickedCards model =
     column [ Element.Region.announce, width fill, Element.Region.description "Picked cards" ]
         [ if not <| (model.othersVotes |> List.isEmpty) then
-            wrappedRow [ centerX, spacing -20 ] (model.othersVotes |> List.reverse |> List.map viewCard)
+            wrappedRow [ centerX, spacing -20 ]
+                (model.othersVotes
+                    |> List.reverse
+                    |> List.map
+                        (\x ->
+                            if model.hideVotes then
+                                viewBackOfCard
+
+                            else
+                                viewCard x
+                        )
+                )
 
           else
             row [ centerX, height (px 160), Font.color (colorBlackWithAlpha01 0.8) ] [ paragraph [] [ text "Nobody has voted yet" ] ]
@@ -355,6 +395,26 @@ cardColorScheme card =
 
         One ->
             [ rgb255 130 255 130, rgb255 180 255 80 ]
+
+
+viewBackOfCard =
+    column
+        [ width (100 |> px)
+        , height (160 |> px)
+        , Border.rounded 10
+        , Bg.gradient { angle = 20, steps = [ rgb255 230 100 100, rgb255 255 230 50, rgb255 130 255 130 ] }
+        , padding 30
+
+        -- , Element.behindContent (el [ centerX, centerY, Font.bold, rotate (degrees 80), Font.size 50, Element.alpha 0.5, Element.Region.description "" ] (text "Enig"))
+        , htmlAttribute (Html.Attributes.style "transition" "opacity 0.1s")
+        , Border.shadow
+            { offset = ( -2, 1 )
+            , size = 0
+            , blur = 3
+            , color = colorBlackWithAlpha01 0.3
+            }
+        ]
+        []
 
 
 viewCard card =
@@ -461,6 +521,23 @@ viewButton { label, action } =
         ]
         { onPress = Just action
         , label = el [] (Element.text label)
+        }
+
+
+viewToggle : { label : String, checked : Bool, action : Bool -> msg } -> Element msg
+viewToggle { label, checked, action } =
+    Input.checkbox []
+        { onChange = action
+        , icon =
+            \newChecked ->
+                text <|
+                    if newChecked then
+                        "✅"
+
+                    else
+                        "🟩"
+        , checked = checked
+        , label = Input.labelLeft [] (el [] (text label))
         }
 
 

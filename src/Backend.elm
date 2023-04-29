@@ -101,10 +101,16 @@ sendUpdatedUserCountToClients room =
     room.clients |> Set.toList |> List.map (\cId -> Lamdera.sendToFrontend cId (UsersInRoomUpdated (room.clients |> Set.size)))
 
 
+sendUpdatedVoteVisibilityToClients : Room -> List (Cmd backendMsg)
+sendUpdatedVoteVisibilityToClients room =
+    room.clients |> Set.toList |> List.map (\cId -> Lamdera.sendToFrontend cId (VoteVisibilityUpdatedToFrontend { displayVotesWhileVoting = room.votesVisibleWhileVoting, revealVotesThisRound = room.displayVotesForThisRound }))
+
+
 sendRoomStateToRoomClients : Room -> List (Cmd backendMsg)
 sendRoomStateToRoomClients room =
     sendUpdatedRoomVotesToClients room
         ++ sendUpdatedUserCountToClients room
+        ++ sendUpdatedVoteVisibilityToClients room
 
 
 updateFromFrontend : SessionId -> ClientId -> ToBackend -> Model -> ( Model, Cmd BackendMsg )
@@ -117,46 +123,11 @@ updateFromFrontend sessionId clientId msg model =
         NoOpToBackend ->
             ( model, Cmd.none )
 
-        StartedNewRoundToBackend ->
-            let
-                maybeRoom =
-                    model.clientRooms
-                        |> Dict.get clientId
-                        |> Maybe.andThen (\rId -> model.rooms |> Dict.get rId)
-            in
-            case maybeRoom of
-                Just r ->
-                    let
-                        newRoom =
-                            { r | votes = [] }
-                    in
-                    { model
-                        | rooms =
-                            model.rooms
-                                |> Dict.insert newRoom.roomId newRoom
-                    }
-                        |> withCmds (sendRoomStateToRoomClients newRoom)
-
-                Nothing ->
-                    doNothing
+        StartedNewRoundToBackend roomId ->
+            updateRoom model roomId (\r -> { r | votes = [], displayVotesForThisRound = r.votesVisibleWhileVoting })
 
         ChangedVoteToBackend roomId vote ->
-            let
-                maybeRoom =
-                    model.rooms
-                        |> Dict.get roomId
-            in
-            case maybeRoom of
-                Nothing ->
-                    doNothing
-
-                Just existingRoom ->
-                    let
-                        updatedRoom =
-                            addVoteToRoom existingRoom vote clientId
-                    in
-                    { model | rooms = model.rooms |> Dict.insert roomId updatedRoom }
-                        |> withCmds (sendRoomStateToRoomClients updatedRoom)
+            updateRoom model roomId (\r -> addVoteToRoom r vote clientId)
 
         JoinedRoomToBackend roomIdInput ->
             let
@@ -190,6 +161,8 @@ updateFromFrontend sessionId clientId msg model =
                             { roomId = roomId
                             , clients = Set.fromList [ clientId ]
                             , votes = []
+                            , votesVisibleWhileVoting = True
+                            , displayVotesForThisRound = True
                             }
 
                 updatedRooms =
@@ -203,6 +176,32 @@ updateFromFrontend sessionId clientId msg model =
                     ([ Lamdera.sendToFrontend clientId (JoinedRoomWithIdToFrontend roomId (newRoomData.votes |> List.map .vote)) ]
                         ++ (updatedRooms |> List.concatMap sendRoomStateToRoomClients)
                     )
+
+        ShowVotesInRoomForRound roomId show ->
+            updateRoom model roomId (\r -> { r | displayVotesForThisRound = show })
+
+        SetShowVotesInRoomSettingToBackend roomId show ->
+            updateRoom model roomId (\r -> { r | votesVisibleWhileVoting = show })
+
+
+updateRoom : Model -> RoomId -> (Room -> Room) -> ( Model, Cmd BackendMsg )
+updateRoom model roomId roomUpdate =
+    let
+        maybeRoom =
+            model.rooms
+                |> Dict.get roomId
+    in
+    case maybeRoom of
+        Nothing ->
+            ( model, Cmd.none )
+
+        Just existingRoom ->
+            let
+                updatedRoom =
+                    roomUpdate existingRoom
+            in
+            { model | rooms = model.rooms |> Dict.insert roomId updatedRoom }
+                |> withCmds (sendRoomStateToRoomClients updatedRoom)
 
 
 dictInsertIfJust key maybeValue dict =

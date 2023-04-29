@@ -20,6 +20,8 @@ type alias FrontendModel =
     , mySelectedVote : Maybe Vote
     , othersVotes : List Vote
     , userCount : Int
+    , hideVotes : Bool
+    , roomHideVotesState : Bool
     , roomIdInput : String
     , roomId : String
     }
@@ -29,6 +31,8 @@ type alias Room =
     { roomId : String
     , clients : Set.Set SessionId
     , votes : List VoteWithOwner
+    , votesVisibleWhileVoting : Bool
+    , displayVotesForThisRound : Bool
     }
 
 
@@ -58,6 +62,8 @@ type FrontendMsg
     | NoOpFrontendMsg
     | ChangedRoomIdInput String
     | ChangedVoteFrontendMsg Vote
+    | ToggeledHiddenVotes Bool
+    | ToggeledHiddenVotesForRoom Bool
     | StartedNewRoundFrontendMsg
     | JoinedRoomFrontendMsg RoomId
 
@@ -69,8 +75,10 @@ type alias RoomId =
 type ToBackend
     = NoOpToBackend
     | ChangedVoteToBackend RoomId Vote
-    | StartedNewRoundToBackend
+    | StartedNewRoundToBackend RoomId
     | JoinedRoomToBackend RoomId
+    | ShowVotesInRoomForRound RoomId Bool
+    | SetShowVotesInRoomSettingToBackend RoomId Bool
 
 
 type BackendMsg
@@ -83,4 +91,5 @@ type ToFrontend
     = NoOpToFrontend
     | VotesUpdated (List Vote)
     | UsersInRoomUpdated Int
+    | VoteVisibilityUpdatedToFrontend { displayVotesWhileVoting : Bool, revealVotesThisRound : Bool }
     | JoinedRoomWithIdToFrontend RoomId (List Vote)
