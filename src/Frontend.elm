@@ -227,15 +227,15 @@ viewSelectedCard : Model -> Vote -> Element FrontendMsg
 viewSelectedCard model card =
     column [ centerX, spacing 10, height fill ]
         [ paragraph [ Font.center ] [ text "You voted: ", el [] (text (cardTypeToString card)) ]
-        , viewButton { label = "Start new round ♻", action = StartedNewRoundFrontendMsg }
+        , el [ centerX ] (viewButton [ centerX ] { label = "Start new round ♻", action = StartedNewRoundFrontendMsg })
         , if model.hideVotes then
-            viewButton { label = "Reveal votes", action = ToggeledHiddenVotes False }
+            viewButton [ centerX ] { label = "Reveal votes", action = ToggeledHiddenVotes False }
 
           else
             none
 
-        -- , viewButton { label = ifThen "🙈 Hiding" "👀 Showing" model.roomHideVotesState ++ " votes", action = ToggeledHiddenVotesForRoom (model.roomHideVotesState |> not) }
-        , el [ alignBottom ] <| viewToggle { label = "Hidden votes (next round)", checked = model.roomHideVotesState, action = ToggeledHiddenVotesForRoom }
+        -- , viewButton [] { label = ifThen "🙈 Hiding" "👀 Showing" model.roomHideVotesState ++ " votes", action = ToggeledHiddenVotesForRoom (model.roomHideVotesState |> not) }
+        , el [ alignBottom, centerX ] <| viewToggle { label = ifThenElse "Hiding" "Visible" model.roomHideVotesState ++ " votes next round", checked = model.roomHideVotesState, action = ToggeledHiddenVotesForRoom }
         ]
 
 
@@ -273,7 +273,7 @@ viewJoinRoom model =
                 [ paragraph []
                     [ text "Start a new session, or use a code to join your colleagues!"
                     ]
-                , viewButton { label = "New Session", action = JoinedRoomFrontendMsg "" }
+                , viewButton [] { label = "New Session", action = JoinedRoomFrontendMsg "" }
                 , el [ height (25 |> px) ] (text "")
                 , Input.text
                     [ ElmUi.Keyboard.onEnterUp (JoinedRoomFrontendMsg model.roomIdInput)
@@ -285,7 +285,7 @@ viewJoinRoom model =
                     , label = Input.labelAbove [] (el [] (text "Join your colleagues:"))
                     }
                 , if model.roomIdInput |> String.isEmpty |> not then
-                    viewButton { label = "Join session", action = JoinedRoomFrontendMsg model.roomIdInput }
+                    viewButton [] { label = "Join session", action = JoinedRoomFrontendMsg model.roomIdInput }
 
                   else
                     none
@@ -469,8 +469,8 @@ borderOutline =
     htmlAttribute (Html.Attributes.style "outline" "3px solid ")
 
 
-viewButton : { label : String, action : msg } -> Element msg
-viewButton { label, action } =
+viewButton : List (Attribute msg) -> { label : String, action : msg } -> Element msg
+viewButton attr { label, action } =
     let
         bgColor =
             rgb255 0 122 60
@@ -485,29 +485,29 @@ viewButton { label, action } =
             rgb255 255 221 0
     in
     Input.button
-        [ paddingEach
+        ([ paddingEach
             { top = 8
             , right = 10
             , bottom = 7
             , left = 10
             }
-        , Bg.color bgColor
-        , Font.color colorWhite
-        , Border.width 2
-        , Border.color bgColor
-        , Border.shadow
+         , Bg.color bgColor
+         , Font.color colorWhite
+         , Border.width 2
+         , Border.color bgColor
+         , Border.shadow
             { offset = ( 0, 3 )
             , size = 0
             , blur = 0
             , color = shadowColor
             }
-        , Border.rounded 4
-        , mouseOver
+         , Border.rounded 4
+         , mouseOver
             [ Bg.color bgHoverColor
             , Border.color bgHoverColor
             , Font.color colorWhite
             ]
-        , focused
+         , focused
             [ Border.color focusOutlineColor
             , Bg.color focusOutlineColor
             , Font.color colorBlack
@@ -518,7 +518,9 @@ viewButton { label, action } =
                 , color = focusOutlineColor
                 }
             ]
-        ]
+         ]
+            ++ attr
+        )
         { onPress = Just action
         , label = el [] (Element.text label)
         }
@@ -532,10 +534,10 @@ viewToggle { label, checked, action } =
             \newChecked ->
                 text <|
                     if newChecked then
-                        "✅"
+                        ""
 
                     else
-                        "⬛"
+                        "🔎"
         , checked = checked
         , label = Input.labelLeft [] (el [] (text label))
         }
